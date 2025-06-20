@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3BB6DD',
+                        secondary: '#F6C939',
+                        accent: '#206277',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom dropdown styling to ensure consistent font */
+        select {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+        }
+        
+        select option {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+            background-color: #1f2937 !important;
+            color: white !important;
+        }
+        
+        /* For webkit browsers */
+        select::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        select::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        
+        select::-webkit-scrollbar-thumb {
+            background: #6b7280;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white min-h-screen overflow-x-auto font-sans">
+    <div class="max-w-7xl mx-auto p-5">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Tournament Controller
+            </h1>
+        </div>
+
+        <!-- Animation Controls -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">🎬 Animation Controls</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="triggerAnimation('slideIn')"
+                        class="px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/50">
+                    📥 Slide In
+                </button>
+                <button onclick="triggerAnimation('slideOut')"
+                        class="px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50">
+                    📤 Slide Out
+                </button>
+                <button onclick="triggerAnimation('fadeIn')"
+                        class="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                    ✨ Fade In
+                </button>
+                <button onclick="triggerAnimation('fadeOut')"
+                        class="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500/50">
+                    💨 Fade Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Series Configuration -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Series Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="flex flex-col space-y-2">
+                    <label for="seriesName" class="text-sm font-medium text-gray-300">Series Name</label>
+                    <input type="text" id="seriesName" placeholder="GARENA MASTERS IX" value="GARENA MASTERS IX"
+                           class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200">
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <label for="seriesNumber" class="text-sm font-medium text-gray-300">Series Number</label>
+                    <input type="text" id="seriesNumber" placeholder="SERIES 1" value="SERIES 1"
+                           class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200">
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="updateSeries()" 
+                            class="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        Update Series
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Management -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Team Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="flex flex-col space-y-2">
+                    <label for="teamName" class="text-sm font-medium text-gray-300">Team Name</label>
+                    <input type="text" id="teamName" placeholder="Enter team name"
+                           class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200">
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Team Logo</label>
+                    <div class="relative">
+                        <input type="file" id="teamLogo" accept="image/*" class="absolute -left-[9999px]">
+                        <label for="teamLogo" 
+                               class="block w-full px-4 py-3 border-2 border-dashed border-white/30 rounded-lg text-center cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/10">
+                            Choose Logo
+                        </label>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="addTeam()"
+                            class="px-6 py-3 bg-gradient-to-r from-yellow-600 to-secondary text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-secondary/50">
+                        Add Team
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="teamList">
+                <!-- Teams will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Battle Setup -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Battle Setup</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center mb-4">
+                <div class="flex flex-col space-y-2">
+                    <label for="leftTeam" class="text-sm font-medium text-gray-300">Left Team</label>
+                    <select id="leftTeam" 
+                            class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 font-sans">
+                        <option value="" class="bg-gray-800 text-white font-sans">Select Team</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-secondary">VS</div>
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <label for="rightTeam" class="text-sm font-medium text-gray-300">Right Team</label>
+                    <select id="rightTeam"
+                            class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 font-sans">
+                        <option value="" class="bg-gray-800 text-white font-sans">Select Team</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-center space-x-3">
+                <button onclick="setupBattle()"
+                        class="px-8 py-3 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    Setup Battle
+                </button>
+                <button onclick="switchTeamsInSetup()"
+                        class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                    🔄 Switch
+                </button>
+                <button onclick="resetBattle()"
+                        class="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                    🗑️ Reset Battle
+                </button>
+            </div>
+        </div>
+
+        <!-- Score Control -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Score Control</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <!-- Left Team Score -->
+                <div class="text-center">
+                    <h3 id="leftTeamName" class="text-lg font-semibold mb-3">TEAMLEFT</h3>
+                    <div id="leftScore" class="text-6xl font-bold text-primary mb-4">0</div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="changeScore('left', -1)"
+                                class="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            −
+                        </button>
+                        <button onclick="changeScore('left', 1)"
+                                class="w-12 h-12 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="text-center space-y-3">
+                    <button onclick="switchTeams()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                        🔄 Switch Teams
+                    </button>
+                    <button onclick="resetScores()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50">
+                        Reset Scores
+                    </button>
+                    <button onclick="resetBattle()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                        🗑️ Reset Battle
+                    </button>
+                    <button onclick="saveBattle()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                        💾 Save Battle
+                    </button>
+                </div>
+
+                <!-- Right Team Score -->
+                <div class="text-center">
+                    <h3 id="rightTeamName" class="text-lg font-semibold mb-3">TEAMRIGHT</h3>
+                    <div id="rightScore" class="text-6xl font-bold text-primary mb-4">0</div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="changeScore('right', -1)"
+                                class="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            −
+                        </button>
+                        <button onclick="changeScore('right', 1)"
+                                class="w-12 h-12 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            +
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match History -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Match History</h2>
+            <div class="max-h-80 overflow-y-auto space-y-3 mb-4" id="matchHistory">
+                <!-- History will be loaded here -->
+            </div>
+            <button onclick="clearHistory()"
+                    class="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50">
+                Clear History
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let teams = JSON.parse(localStorage.getItem('tournament_teams')) || [];
+        let currentMatch = JSON.parse(localStorage.getItem('current_match')) || {
+            leftTeam: null,
+            rightTeam: null,
+            leftScore: 0,
+            rightScore: 0,
+            seriesName: 'GARENA MASTERS IX',
+            seriesNumber: 'SERIES 1'
+        };
+        let matchHistory = JSON.parse(localStorage.getItem('match_history')) || [];
+
+        function showStatus(message, type = 'success') {
+            const status = document.createElement('div');
+            const baseClasses = 'fixed top-5 right-5 px-6 py-3 rounded-lg font-medium z-50 transform transition-all duration-300 ease-in-out shadow-lg';
+            const typeClasses = type === 'success' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-red-600 text-white';
+            status.className = `${baseClasses} ${typeClasses}`;
+            status.textContent = message;
+            document.body.appendChild(status);
+            
+            // Animate in
+            setTimeout(() => {
+                status.style.transform = 'translateX(0)';
+            }, 10);
+            
+            setTimeout(() => {
+                status.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    status.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function updateDisplay() {
+            // Update controller display
+            document.getElementById('leftScore').textContent = currentMatch.leftScore;
+            document.getElementById('rightScore').textContent = currentMatch.rightScore;
+            
+            // Update team names with fallback text
+            document.getElementById('leftTeamName').textContent = currentMatch.leftTeam ? currentMatch.leftTeam.name : 'TEAM LEFT';
+            document.getElementById('rightTeamName').textContent = currentMatch.rightTeam ? currentMatch.rightTeam.name : 'TEAM RIGHT';
+
+            // Send data to server for OBS/vMix compatibility
+            fetch('/api/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(currentMatch)
+            }).catch(error => {
+                console.error('Error updating server:', error);
+                showStatus('Server communication error', 'error');
+            });
+            
+            // Keep localStorage for backward compatibility
+            localStorage.setItem('current_match', JSON.stringify(currentMatch));
+        }
+
+        function triggerAnimation(animationType) {
+            // Send animation trigger to server for OBS/vMix compatibility
+            fetch('/api/animation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: animationType,
+                    trigger_time: Date.now()
+                })
+            }).catch(error => {
+                console.error('Error triggering animation:', error);
+                showStatus('Animation trigger error', 'error');
+            });
+            
+            // Keep localStorage for backward compatibility
+            const animData = {
+                type: animationType,
+                timestamp: Date.now(),
+                animId: Math.random().toString(36).substr(2, 9)
+            };
+            localStorage.setItem('animation_trigger', JSON.stringify(animData));
+            
+            showStatus(`${animationType} animation triggered!`);
+        }
+
+        function saveBattle() {
+            if (!currentMatch.leftTeam || !currentMatch.rightTeam) {
+                showStatus('Please setup a battle first!', 'error');
+                return;
+            }
+
+            const matchResult = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                leftTeam: currentMatch.leftTeam,
+                rightTeam: currentMatch.rightTeam,
+                leftScore: currentMatch.leftScore,
+                rightScore: currentMatch.rightScore,
+                series: `${currentMatch.seriesName} ${currentMatch.seriesNumber}`,
+                winner: currentMatch.leftScore > currentMatch.rightScore ? currentMatch.leftTeam : 
+                        currentMatch.rightScore > currentMatch.leftScore ? currentMatch.rightTeam : null,
+                status: 'completed'
+            };
+            
+            matchHistory.unshift(matchResult);
+            localStorage.setItem('match_history', JSON.stringify(matchHistory));
+            updateMatchHistory();
+            
+            // Optionally reset battle after saving
+            if (confirm('Battle saved! Would you like to reset for a new battle?')) {
+                resetBattle();
+            } else {
+                showStatus('Battle saved successfully!');
+            }
+        }
+
+        function addTeam() {
+            const name = document.getElementById('teamName').value.trim();
+            const logoFile = document.getElementById('teamLogo').files[0];
+            
+            if (!name) {
+                showStatus('Please enter a team name', 'error');
+                return;
+            }
+
+            const team = {
+                id: Date.now(),
+                name: name,
+                logo: null
+            };
+
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    team.logo = e.target.result;
+                    teams.push(team);
+                    localStorage.setItem('tournament_teams', JSON.stringify(teams));
+                    updateTeamsList();
+                    updateTeamSelectors();
+                    
+                    // Clear form
+                    document.getElementById('teamName').value = '';
+                    document.getElementById('teamLogo').value = '';
+                    
+                    showStatus(`Team "${name}" added successfully!`);
+                };
+                reader.readAsDataURL(logoFile);
+            } else {
+                teams.push(team);
+                localStorage.setItem('tournament_teams', JSON.stringify(teams));
+                updateTeamsList();
+                updateTeamSelectors();
+                
+                // Clear form
+                document.getElementById('teamName').value = '';
+                
+                showStatus(`Team "${name}" added successfully!`);
+            }
+        }
+
+        function removeTeam(teamId) {
+            teams = teams.filter(team => team.id !== teamId);
+            localStorage.setItem('tournament_teams', JSON.stringify(teams));
+            updateTeamsList();
+            updateTeamSelectors();
+            showStatus('Team removed successfully!');
+        }
+
+        function updateTeamsList() {
+            const teamList = document.getElementById('teamList');
+            teamList.innerHTML = '';
+            
+            teams.forEach(team => {
+                const teamCard = document.createElement('div');
+                teamCard.className = 'bg-white/10 border border-white/10 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-200';
+                teamCard.innerHTML = `
+                    <div class="w-16 h-16 rounded-full mx-auto mb-3 bg-white/10 flex items-center justify-center overflow-hidden border-2 border-white/20">
+                        ${team.logo ? `<img src="${team.logo}" alt="${team.name}" class="w-full h-full object-cover">` : `<span class="text-xl font-bold text-primary">${team.name.charAt(0)}</span>`}
+                    </div>
+                    <div class="font-medium text-white mb-3 truncate">${team.name}</div>
+                    <button onclick="removeTeam(${team.id})" 
+                            class="px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium rounded-lg hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50">
+                        Remove
+                    </button>
+                `;
+                teamList.appendChild(teamCard);
+            });
+        }
+
+        function updateTeamSelectors() {
+            const leftSelect = document.getElementById('leftTeam');
+            const rightSelect = document.getElementById('rightTeam');
+            
+            // Clear existing options except the first one
+            leftSelect.innerHTML = '<option value="">Select Team</option>';
+            rightSelect.innerHTML = '<option value="">Select Team</option>';
+            
+            teams.forEach(team => {
+                const option1 = document.createElement('option');
+                option1.value = team.id;
+                option1.textContent = team.name;
+                option1.className = 'bg-gray-800 text-white font-sans';
+                leftSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = team.id;
+                option2.textContent = team.name;
+                option2.className = 'bg-gray-800 text-white font-sans';
+                rightSelect.appendChild(option2);
+            });
+        }
+
+        function setupBattle() {
+            const leftTeamId = document.getElementById('leftTeam').value;
+            const rightTeamId = document.getElementById('rightTeam').value;
+            
+            if (!leftTeamId || !rightTeamId) {
+                showStatus('Please select both teams', 'error');
+                return;
+            }
+            
+            if (leftTeamId === rightTeamId) {
+                showStatus('Please select different teams', 'error');
+                return;
+            }
+            
+            currentMatch.leftTeam = teams.find(team => team.id == leftTeamId);
+            currentMatch.rightTeam = teams.find(team => team.id == rightTeamId);
+            currentMatch.leftScore = 0;
+            currentMatch.rightScore = 0;
+            
+            updateDisplay();
+            showStatus('Battle setup completed!');
+        }
+
+        function changeScore(side, delta) {
+            if (side === 'left') {
+                currentMatch.leftScore = Math.max(0, currentMatch.leftScore + delta);
+            } else {
+                currentMatch.rightScore = Math.max(0, currentMatch.rightScore + delta);
+            }
+            updateDisplay();
+        }
+
+        function resetScores() {
+            currentMatch.leftScore = 0;
+            currentMatch.rightScore = 0;
+            updateDisplay();
+            showStatus('Scores reset!');
+        }
+
+        function resetBattle() {
+            if (confirm('Are you sure you want to reset the entire battle? This will clear teams and scores.')) {
+                // Reset match data
+                currentMatch.leftTeam = null;
+                currentMatch.rightTeam = null;
+                currentMatch.leftScore = 0;
+                currentMatch.rightScore = 0;
+                
+                // Reset dropdown selections
+                const leftSelect = document.getElementById('leftTeam');
+                const rightSelect = document.getElementById('rightTeam');
+                leftSelect.value = '';
+                rightSelect.value = '';
+                
+                // Update display
+                updateDisplay();
+                showStatus('Battle reset successfully!');
+            }
+        }
+
+        function switchTeams() {
+            if (!currentMatch.leftTeam || !currentMatch.rightTeam) {
+                showStatus('Please setup a battle first!', 'error');
+                return;
+            }
+
+            // Swap teams
+            const tempTeam = currentMatch.leftTeam;
+            currentMatch.leftTeam = currentMatch.rightTeam;
+            currentMatch.rightTeam = tempTeam;
+
+            // Swap scores
+            const tempScore = currentMatch.leftScore;
+            currentMatch.leftScore = currentMatch.rightScore;
+            currentMatch.rightScore = tempScore;
+
+            // Update the battle setup selectors
+            const leftSelect = document.getElementById('leftTeam');
+            const rightSelect = document.getElementById('rightTeam');
+            leftSelect.value = currentMatch.leftTeam.id;
+            rightSelect.value = currentMatch.rightTeam.id;
+
+            updateDisplay();
+            showStatus('Teams switched successfully!');
+        }
+
+        function switchTeamsInSetup() {
+            const leftSelect = document.getElementById('leftTeam');
+            const rightSelect = document.getElementById('rightTeam');
+            
+            // Get current values
+            const leftValue = leftSelect.value;
+            const rightValue = rightSelect.value;
+            
+            if (!leftValue && !rightValue) {
+                showStatus('Please select teams first!', 'error');
+                return;
+            }
+            
+            // Swap the dropdown values
+            leftSelect.value = rightValue;
+            rightSelect.value = leftValue;
+            
+            // If we have an active battle, update it
+            if (currentMatch.leftTeam || currentMatch.rightTeam) {
+                // Swap scores along with teams
+                const tempScore = currentMatch.leftScore;
+                currentMatch.leftScore = currentMatch.rightScore;
+                currentMatch.rightScore = tempScore;
+                
+                // Find the teams based on the new dropdown values
+                if (leftSelect.value) {
+                    currentMatch.leftTeam = teams.find(team => team.id == leftSelect.value);
+                } else {
+                    currentMatch.leftTeam = null;
+                }
+                
+                if (rightSelect.value) {
+                    currentMatch.rightTeam = teams.find(team => team.id == rightSelect.value);
+                } else {
+                    currentMatch.rightTeam = null;
+                }
+                
+                updateDisplay();
+                showStatus('Teams and scores switched!');
+            } else {
+                showStatus('Team positions switched!');
+            }
+        }
+
+        function updateSeries() {
+            const seriesName = document.getElementById('seriesName').value.trim();
+            const seriesNumber = document.getElementById('seriesNumber').value.trim();
+            
+            if (!seriesName || !seriesNumber) {
+                showStatus('Please fill in both series fields', 'error');
+                return;
+            }
+            
+            currentMatch.seriesName = seriesName;
+            currentMatch.seriesNumber = seriesNumber;
+            updateDisplay();
+            showStatus('Series updated!');
+        }
+
+        function saveMatch() {
+            if (currentMatch.leftTeam && currentMatch.rightTeam) {
+                const matchResult = {
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    leftTeam: currentMatch.leftTeam,
+                    rightTeam: currentMatch.rightTeam,
+                    leftScore: currentMatch.leftScore,
+                    rightScore: currentMatch.rightScore,
+                    series: `${currentMatch.seriesName} ${currentMatch.seriesNumber}`,
+                    winner: currentMatch.leftScore > currentMatch.rightScore ? currentMatch.leftTeam : currentMatch.rightTeam
+                };
+                
+                matchHistory.unshift(matchResult);
+                localStorage.setItem('match_history', JSON.stringify(matchHistory));
+                updateMatchHistory();
+                showStatus('Match saved to history!');
+            }
+        }
+
+        function updateMatchHistory() {
+            const historyContainer = document.getElementById('matchHistory');
+            historyContainer.innerHTML = '';
+            
+            if (matchHistory.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center text-gray-400 py-8">No match history available</div>';
+                return;
+            }
+            
+            matchHistory.forEach(match => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 hover:bg-white/10 transition-colors duration-200';
+                historyItem.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-semibold text-white text-lg">
+                            ${match.leftTeam.name} <span class="text-primary">${match.leftScore}</span> - <span class="text-primary">${match.rightScore}</span> ${match.rightTeam.name}
+                        </div>
+                        <div class="text-sm text-gray-400 mt-1">${new Date(match.timestamp).toLocaleString()}</div>
+                    </div>
+                    <div class="text-secondary font-bold text-sm sm:text-base">
+                        🏆 ${match.winner.name}
+                    </div>
+                `;
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all match history?')) {
+                matchHistory = [];
+                localStorage.setItem('match_history', JSON.stringify(matchHistory));
+                updateMatchHistory();
+                showStatus('Match history cleared!');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'q': // Ctrl+Q - Left team +1
+                        e.preventDefault();
+                        changeScore('left', 1);
+                        break;
+                    case 'a': // Ctrl+A - Left team -1
+                        e.preventDefault();
+                        changeScore('left', -1);
+                        break;
+                    case 'p': // Ctrl+P - Right team +1
+                        e.preventDefault();
+                        changeScore('right', 1);
+                        break;
+                    case 'l': // Ctrl+L - Right team -1
+                        e.preventDefault();
+                        changeScore('right', -1);
+                        break;
+                    case 'r': // Ctrl+R - Reset scores
+                        e.preventDefault();
+                        resetScores();
+                        break;
+                    case 's': // Ctrl+S - Save match
+                        e.preventDefault();
+                        saveMatch();
+                        break;
+                    case 't': // Ctrl+T - Switch teams
+                        e.preventDefault();
+                        switchTeams();
+                        break;
+                    case 'b': // Ctrl+B - Reset battle
+                        e.preventDefault();
+                        resetBattle();
+                        break;
+                    case '1': // Ctrl+1 - Slide In
+                        e.preventDefault();
+                        triggerAnimation('slideIn');
+                        break;
+                    case '2': // Ctrl+2 - Slide Out
+                        e.preventDefault();
+                        triggerAnimation('slideOut');
+                        break;
+                    case '3': // Ctrl+3 - Fade In
+                        e.preventDefault();
+                        triggerAnimation('fadeIn');
+                        break;
+                    case '4': // Ctrl+4 - Fade Out
+                        e.preventDefault();
+                        triggerAnimation('fadeOut');
+                        break;
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved data
+            document.getElementById('seriesName').value = currentMatch.seriesName;
+            document.getElementById('seriesNumber').value = currentMatch.seriesNumber;
+            
+            updateTeamsList();
+            updateTeamSelectors();
+            
+            // Restore battle setup if teams are selected
+            if (currentMatch.leftTeam) {
+                document.getElementById('leftTeam').value = currentMatch.leftTeam.id;
+            }
+            if (currentMatch.rightTeam) {
+                document.getElementById('rightTeam').value = currentMatch.rightTeam.id;
+            }
+            
+            updateDisplay();
+            updateMatchHistory();
+            
+            showStatus('Controller loaded successfully!');
+        });
+
+        // Auto-save match when scores change significantly
+        let lastSaveScore = 0;
+        setInterval(() => {
+            const totalScore = currentMatch.leftScore + currentMatch.rightScore;
+            if (totalScore > lastSaveScore && totalScore % 5 === 0) {
+                saveMatch();
+                lastSaveScore = totalScore;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

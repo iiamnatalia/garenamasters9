@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Overlay</title>
+    <!-- Custom Fonts -->
+    <style>
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Extrabold.otf') format('opentype');
+            font-weight: 800;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Heavy.otf') format('opentype');
+            font-weight: 900;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar Light.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        
+        /* Overlay starts transparent for chroma key */
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        /* Status indicator for debugging */
+        #status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ff00;
+            z-index: 9999;
+            opacity: 0.9;
+            border: 2px solid white;
+        }
+        
+        #status-indicator.error {
+            background: #ff0000;
+        }
+        
+        #status-indicator.updating {
+            background: #ffff00;
+            animation: pulse 0.5s infinite;
+        }
+        
+        #status-indicator.file-mode {
+            background: #ff8800;
+        }
+        
+        /* Debug info panel */
+        #debug-info {
+            position: fixed;
+            top: 40px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9998;
+            max-width: 300px;
+            display: none;
+        }
+        
+        #debug-info.show {
+            display: block;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Status indicator for debugging -->
+    <div id="status-indicator"></div>
+    <div id="debug-info">
+        <div>Mode: <span id="debug-mode">Starting...</span></div>
+        <div>Updates: <span id="debug-updates">0</span></div>
+        <div>Last: <span id="debug-last">Never</span></div>
+        <div>Error: <span id="debug-error">None</span></div>
+    </div>
+    
+    <div style="width: 1920px; height: 1080px; position: relative">
+        <!-- Team Names Header -->
+        <div id="teamNamesHeader" class="animation-layer" style="width: 148px; height: 49px; left: 729px; top: 0px; position: absolute">
+          <div style="width: 146px; height: 49px; left: 319px; top: 0px; position: absolute">
+            <div style="width: 146px; height: 49px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #967A21 0%, #F6C939 100%)"></div>
+            <div id="rightTeamName" style="left: 40px; top: 11px; position: absolute; text-align: center; color: white; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">TEAMRIGHT</div>
+          </div>
+          <div style="width: 153px; height: 49px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #3BB6DD 0%, #206277 100%)"></div>
+          <div id="leftTeamName" style="left: 40px; top: 11px; position: absolute; text-align: center; color: white; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">TEAMLEFT</div>
+        </div>
+        
+        <!-- Left Team Section -->
+        <div id="leftTeamSection" class="animation-layer" style="width: 116px; height: 121px; left: 613px; top: 0px; position: absolute; outline: 1px black solid; outline-offset: -1px">
+          <div style="width: 78px; height: 121px; left: -78px; top: 0px; position: absolute">
+            <div style="width: 78px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #3BB6DD 0%, #206277 100%)"></div>
+            <div id="leftScore" style="left: 0px;top: 10px;position: absolute;text-align: center;color: white;font-size: 84px;font-family: Refrigerator Deluxe;font-weight: 800;word-wrap: break-word;width: 78px">0</div>
+          </div>
+          <div style="width: 116px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%); border: 2px rgba(59, 182, 221, 0.84) solid"></div>
+          <div id="leftLogo" style="width: 92px; height: 92px; left: 12px; top: 15px; position: absolute"></div>
+        </div>
+        
+        <!-- Right Team Section -->
+        <div id="rightTeamSection" class="animation-layer" style="width: 116px; height: 121px; left: 1194px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%)">
+          <div style="width: 78px; height: 121px; left: 116px; top: 0px; position: absolute">
+            <div style="width: 78px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #967A21 0%, #F6C939 100%)"></div>
+            <div id="rightScore" style="left: 0px; top: 10px; position: absolute; text-align: center; color: white; font-size: 84px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word; width: 78px">0</div>
+          </div>
+          <div style="width: 116px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%); border: 2px rgba(246, 201, 57, 0.84) solid"></div>
+          <div id="rightLogo" style="width: 92px; height: 92px; left: 12px; top: 15px; position: absolute"></div>
+        </div>
+        
+        <!-- Series Info Section -->
+        <div id="seriesSection" class="animation-layer" style="width: 230px; height: 52px; left: 847px; top: 0px; position: absolute">
+          <div style="width: 171px; height: 52px; left: 30px; top: 0px; position: absolute; background: #1E1E1E; box-shadow: 0px 1px 3.200000047683716px rgba(0, 0, 0, 0.46)"></div>
+          <div id="seriesName" style="left: 61px; top: 9px; position: absolute; text-align: center; color: white; font-size: 10px; font-family: Gunar ; font-weight: 400; word-wrap: break-word">GARENA MASTERS IX</div>
+          <div id="seriesNumber" style="left: 78px; top: 20px; position: absolute; text-align: center; color: #F6C939; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">SERIES 1</div>
+        </div>
+      </div>
+
+    <style>
+        /* Animation layers base - START VISIBLE for vMix/OBS */
+        .animation-layer {
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: translate(0, 0);
+        }
+        
+        /* Hidden positions for animations */
+        .animation-layer.hidden {
+            opacity: 0;
+        }
+        
+        /* Initial hidden positions for each layer */
+        .animation-layer.slide-hidden #teamNamesHeader {
+            transform: translateY(-60px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #leftTeamSection {
+            transform: translateX(-120px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #rightTeamSection {
+            transform: translateX(120px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #seriesSection {
+            transform: translateY(-60px);
+            opacity: 0;
+        }
+        
+        /* Show layers when visible */
+        .animation-layer.visible {
+            opacity: 1 !important;
+            transform: translate(0, 0) !important;
+        }
+        
+        /* Layer-specific slide in animations */
+        .layer-slide-in-1 { animation: slideInLayer1 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .layer-slide-in-2 { animation: slideInLayer2 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both; }
+        .layer-slide-in-3 { animation: slideInLayer3 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both; }
+        .layer-slide-in-4 { animation: slideInLayer4 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.45s both; }
+        .layer-slide-in-5 { animation: slideInLayer5 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s both; }
+        
+        /* Layer-specific slide out animations */
+        .layer-slide-out-1 { animation: slideOutLayer1 0.6s cubic-bezier(0.4, 0, 1, 1); }
+        .layer-slide-out-2 { animation: slideOutLayer2 0.6s cubic-bezier(0.4, 0, 1, 1) 0.15s both; }
+        .layer-slide-out-3 { animation: slideOutLayer3 0.6s cubic-bezier(0.4, 0, 1, 1) 0.3s both; }
+        .layer-slide-out-4 { animation: slideOutLayer4 0.6s cubic-bezier(0.4, 0, 1, 1) 0.45s both; }
+        .layer-slide-out-5 { animation: slideOutLayer5 0.6s cubic-bezier(0.4, 0, 1, 1) 0.6s both; }
+        
+        /* Layer-specific fade in animations */
+        .layer-fade-in-1 { animation: fadeInLayer1 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .layer-fade-in-2 { animation: fadeInLayer2 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both; }
+        .layer-fade-in-3 { animation: fadeInLayer3 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both; }
+        .layer-fade-in-4 { animation: fadeInLayer4 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.45s both; }
+        .layer-fade-in-5 { animation: fadeInLayer5 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s both; }
+        
+        /* Layer-specific fade out animations */
+        .layer-fade-out-1 { animation: fadeOutLayer1 0.6s cubic-bezier(0.4, 0, 1, 1); }
+        .layer-fade-out-2 { animation: fadeOutLayer2 0.6s cubic-bezier(0.4, 0, 1, 1) 0.15s both; }
+        .layer-fade-out-3 { animation: fadeOutLayer3 0.6s cubic-bezier(0.4, 0, 1, 1) 0.3s both; }
+        .layer-fade-out-4 { animation: fadeOutLayer4 0.6s cubic-bezier(0.4, 0, 1, 1) 0.45s both; }
+        .layer-fade-out-5 { animation: fadeOutLayer5 0.6s cubic-bezier(0.4, 0, 1, 1) 0.6s both; }
+        
+        /* Esports glow effects */
+        .layer-glow-blue {
+            box-shadow: 0 0 30px rgba(59, 182, 221, 0.8), 0 0 60px rgba(59, 182, 221, 0.4);
+        }
+        .layer-glow-gold {
+            box-shadow: 0 0 30px rgba(246, 201, 57, 0.8), 0 0 60px rgba(246, 201, 57, 0.4);
+        }
+        
+        /* Animation keyframes */
+        @keyframes slideInLayer1 {
+            0% { transform: translateY(-80px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideInLayer2 {
+            0% { transform: translateY(-60px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideInLayer3 {
+            0% { transform: translateX(-120px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInLayer4 {
+            0% { transform: translateX(120px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInLayer5 {
+            0% { transform: translateY(-60px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutLayer1 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-80px); opacity: 0; }
+        }
+        @keyframes slideOutLayer2 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-60px); opacity: 0; }
+        }
+        @keyframes slideOutLayer3 {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(-120px); opacity: 0; }
+        }
+        @keyframes slideOutLayer4 {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120px); opacity: 0; }
+        }
+        @keyframes slideOutLayer5 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-60px); opacity: 0; }
+        }
+        
+        @keyframes fadeInLayer1 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInLayer2 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInLayer3 {
+            0% { opacity: 0; transform: scale(0.85) translateX(-20px); }
+            100% { opacity: 1; transform: scale(1) translateX(0); }
+        }
+        @keyframes fadeInLayer4 {
+            0% { opacity: 0; transform: scale(0.85) translateX(20px); }
+            100% { opacity: 1; transform: scale(1) translateX(0); }
+        }
+        @keyframes fadeInLayer5 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        @keyframes fadeOutLayer1 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+        @keyframes fadeOutLayer2 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+        @keyframes fadeOutLayer3 {
+            0% { opacity: 1; transform: scale(1) translateX(0); }
+            100% { opacity: 0; transform: scale(0.85) translateX(-20px); }
+        }
+        @keyframes fadeOutLayer4 {
+            0% { opacity: 1; transform: scale(1) translateX(0); }
+            100% { opacity: 0; transform: scale(0.85) translateX(20px); }
+        }
+        @keyframes fadeOutLayer5 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+    </style>
+
+    <script>
+        // Enhanced overlay script for vMix/OBS compatibility
+        let isAnimating = false;
+        let lastDataTimestamp = 0;
+        let lastAnimTimestamp = 0;
+        let lastUpdateId = '';
+        let lastAnimId = '';
+        let statusIndicator = null;
+        let debugInfo = null;
+        let updateCount = 0;
+        let currentMode = 'server';
+        
+        function updateStatus(status) {
+            if (!statusIndicator) {
+                statusIndicator = document.getElementById('status-indicator');
+                debugInfo = document.getElementById('debug-info');
+            }
+            
+            statusIndicator.className = status || '';
+            
+            // Show debug info in OBS for troubleshooting
+            if (debugInfo) {
+                debugInfo.classList.add('show');
+                document.getElementById('debug-mode').textContent = currentMode;
+                document.getElementById('debug-updates').textContent = updateCount;
+                document.getElementById('debug-last').textContent = new Date().toLocaleTimeString();
+                
+                if (status === 'error') {
+                    document.getElementById('debug-error').textContent = 'Connection failed';
+                } else {
+                    document.getElementById('debug-error').textContent = 'None';
+                }
+            }
+        }
+        
+        function loadMatchData() {
+            try {
+                // Load from server first (for OBS/vMix compatibility)
+                fetch('/api/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateDisplay(data);
+                        updateStatus(''); // Green - normal
+                    })
+                    .catch(error => {
+                        console.error('Error loading from server:', error);
+                        // Fallback to localStorage
+                        const currentMatch = JSON.parse(localStorage.getItem('current_match')) || {
+                            leftTeam: null,
+                            rightTeam: null,
+                            leftScore: 0,
+                            rightScore: 0,
+                            seriesName: 'GARENA MASTERS IX',
+                            seriesNumber: 'SERIES 1'
+                        };
+                        updateDisplay(currentMatch);
+                        updateStatus('error'); // Yellow - using fallback
+                    });
+            } catch (error) {
+                console.error('Error loading match data:', error);
+                updateStatus('error'); // Red - error
+            }
+        }
+        
+        function triggerAnimation(animationType) {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            updateStatus('updating'); // Yellow - animating
+            
+            const layers = [
+                document.getElementById('teamNamesHeader'),
+                document.getElementById('leftTeamSection'),
+                document.getElementById('rightTeamSection'),
+                document.getElementById('seriesSection')
+            ];
+            
+            // Clear existing animation classes
+            layers.forEach(layer => {
+                if (layer) {
+                    layer.className = layer.className.replace(/layer-(slide|fade)-(in|out)-\d+/g, '').replace(/layer-glow-(blue|gold)/g, '').replace(/visible/g, '').trim();
+                    layer.classList.add('animation-layer');
+                    
+                    if (animationType.includes('In')) {
+                        layer.classList.remove('visible');
+                    } else {
+                        layer.classList.add('visible');
+                        layer.offsetHeight; // Force reflow
+                    }
+                }
+            });
+            
+            // Apply animations
+            switch(animationType) {
+                case 'slideIn':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-slide-in-${index + 1}`);
+                                if (index === 1) layer.classList.add('layer-glow-blue');
+                                if (index === 2) layer.classList.add('layer-glow-gold');
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) {
+                                layer.classList.remove('layer-glow-blue', 'layer-glow-gold');
+                                layer.classList.add('visible');
+                            }
+                        });
+                        isAnimating = false;
+                        updateStatus(''); // Back to green
+                    }, 1500);
+                    break;
+                    
+                case 'slideOut':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-slide-out-${index + 1}`);
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) layer.classList.remove('visible');
+                        });
+                        isAnimating = false;
+                        updateStatus('');
+                    }, 1500);
+                    break;
+                    
+                case 'fadeIn':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-fade-in-${index + 1}`);
+                                if (index === 1) layer.classList.add('layer-glow-blue');
+                                if (index === 2) layer.classList.add('layer-glow-gold');
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) {
+                                layer.classList.remove('layer-glow-blue', 'layer-glow-gold');
+                                layer.classList.add('visible');
+                            }
+                        });
+                        isAnimating = false;
+                        updateStatus('');
+                    }, 1500);
+                    break;
+                    
+                case 'fadeOut':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-fade-out-${index + 1}`);
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) layer.classList.remove('visible');
+                        });
+                        isAnimating = false;
+                        updateStatus('');
+                    }, 1500);
+                    break;
+            }
+        }
+
+        function updateDisplay(matchData) {
+            try {
+                updateStatus('updating');
+                
+                // Update scores
+                document.getElementById('leftScore').textContent = matchData.leftScore || 0;
+                document.getElementById('rightScore').textContent = matchData.rightScore || 0;
+                
+                // Update series info
+                document.getElementById('seriesName').textContent = matchData.seriesName || 'GARENA MASTERS IX';
+                document.getElementById('seriesNumber').textContent = matchData.seriesNumber || 'SERIES 1';
+                
+                // Update team names
+                if (matchData.leftTeam) {
+                    document.getElementById('leftTeamName').textContent = matchData.leftTeam.name;
+                    
+                    const leftLogo = document.getElementById('leftLogo');
+                    if (matchData.leftTeam.logo) {
+                        leftLogo.innerHTML = `<img src="${matchData.leftTeam.logo}" alt="${matchData.leftTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        leftLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('leftTeamName').textContent = 'TEAM LEFT';
+                    document.getElementById('leftLogo').innerHTML = '';
+                }
+                
+                if (matchData.rightTeam) {
+                    document.getElementById('rightTeamName').textContent = matchData.rightTeam.name;
+                    
+                    const rightLogo = document.getElementById('rightLogo');
+                    if (matchData.rightTeam.logo) {
+                        rightLogo.innerHTML = `<img src="${matchData.rightTeam.logo}" alt="${matchData.rightTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        rightLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('rightTeamName').textContent = 'TEAM RIGHT';
+                    document.getElementById('rightLogo').innerHTML = '';
+                }
+                
+                setTimeout(() => updateStatus(''), 100); // Brief update indicator
+            } catch (error) {
+                console.error('Error updating display:', error);
+                updateStatus('error');
+            }
+        }
+
+        // Enhanced polling for vMix/OBS compatibility - using file-based approach
+        function checkForUpdates() {
+            try {
+                // Try server API first, fallback to file-based approach
+                fetch('/api/data')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Server API not available');
+                        }
+                        return response.json();
+                    })
+                                         .then(data => {
+                         if (data.server_time && data.server_time > lastDataTimestamp) {
+                             lastDataTimestamp = data.server_time;
+                             updateDisplay(data);
+                             updateStatus(''); // Green - server working
+                             updateCount++;
+                             currentMode = 'server-api';
+                         }
+                     })
+                    .catch(error => {
+                        console.log('Server API failed, trying file approach:', error);
+                        currentMode = 'file';
+                        // Fallback: Try to load JSON file directly
+                        fetch('/tournament_data.json?t=' + Date.now())
+                            .then(response => response.json())
+                            .then(data => {
+                                updateDisplay(data);
+                                updateStatus('file-mode'); // Orange - using file fallback
+                                updateCount++;
+                            })
+                            .catch(fileError => {
+                                console.error('Both server and file approaches failed:', fileError);
+                                currentMode = 'failed';
+                                updateStatus('error');
+                            });
+                    });
+                
+                // Check animation triggers
+                fetch('/api/animation')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.server_time && data.server_time > lastAnimTimestamp && data.type !== 'none') {
+                            lastAnimTimestamp = data.server_time;
+                            triggerAnimation(data.type);
+                        }
+                    })
+                    .catch(error => {
+                        // Fallback: Try to load animation JSON file directly
+                        fetch('/animation_data.json?t=' + Date.now())
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.server_time && data.server_time > lastAnimTimestamp && data.type !== 'none') {
+                                    lastAnimTimestamp = data.server_time;
+                                    triggerAnimation(data.type);
+                                }
+                            })
+                            .catch(animError => {
+                                console.error('Animation fetch failed:', animError);
+                            });
+                    });
+                
+            } catch (error) {
+                console.error('Update check failed:', error);
+                updateStatus('error');
+            }
+        }
+        
+        // Very fast polling for responsive overlay updates
+        setInterval(checkForUpdates, 100);
+        
+        // Fallback slower polling in case fast polling fails
+        setInterval(loadMatchData, 5000);
+
+        // Initialize overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Tournament Overlay loaded');
+            loadMatchData();
+            
+            // Make all layers visible by default for vMix/OBS
+            const layers = document.querySelectorAll('.animation-layer');
+            layers.forEach(layer => {
+                layer.classList.add('visible');
+            });
+        });
+        
+        // Also initialize immediately
+        loadMatchData();
+        
+        // Debug: Log when localStorage changes (for testing)
+        window.addEventListener('storage', function(e) {
+            console.log('LocalStorage changed:', e.key, e.newValue);
+        });
+    </script>
+</body>
+</html>
