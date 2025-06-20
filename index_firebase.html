@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Overlay - Firebase</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- Custom Fonts -->
+    <style>
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Extrabold.otf') format('opentype');
+            font-weight: 800;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Refrigerator Deluxe';
+            src: url('fonts/Refrigerator Deluxe Heavy.otf') format('opentype');
+            font-weight: 900;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar Light.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Gunar';
+            src: url('fonts/Gunar Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        
+        /* Overlay starts transparent for chroma key */
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        /* Firebase status indicator */
+        #firebase-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffa500;
+            z-index: 9999;
+            border: 2px solid white;
+        }
+        
+        #firebase-status.connected {
+            background: #00ff00;
+        }
+        
+        #firebase-status.error {
+            background: #ff0000;
+        }
+        
+        /* Setup instructions panel */
+        #setup-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            z-index: 10000;
+        }
+        
+        #setup-panel.hidden {
+            display: none;
+        }
+        
+        .setup-step {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase status indicator -->
+    <div id="firebase-status"></div>
+    
+    <!-- Setup instructions panel -->
+    <div id="setup-panel">
+        <h2>🔥 Firebase Setup Required</h2>
+        <p>To use this overlay, you need to set up Firebase:</p>
+        
+        <div class="setup-step">
+            <strong>1.</strong> Go to <a href="https://firebase.google.com" target="_blank" style="color: #4fc3f7;">Firebase Console</a>
+        </div>
+        <div class="setup-step">
+            <strong>2.</strong> Create a new project (or use existing)
+        </div>
+        <div class="setup-step">
+            <strong>3.</strong> Enable "Realtime Database"
+        </div>
+        <div class="setup-step">
+            <strong>4.</strong> Get your config from Project Settings → Web App
+        </div>
+        <div class="setup-step">
+            <strong>5.</strong> Replace the config in the JavaScript below
+        </div>
+        
+        <p style="margin-top: 20px; color: #ffeb3b;">
+            Once configured, this overlay will work perfectly in OBS/vMix!
+        </p>
+    </div>
+    
+    <div style="width: 1920px; height: 1080px; position: relative">
+        <!-- Team Names Header -->
+        <div id="teamNamesHeader" class="animation-layer" style="width: 148px; height: 49px; left: 729px; top: 0px; position: absolute">
+          <div style="width: 146px; height: 49px; left: 319px; top: 0px; position: absolute">
+            <div style="width: 146px; height: 49px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #967A21 0%, #F6C939 100%)"></div>
+            <div id="rightTeamName" style="left: 40px; top: 11px; position: absolute; text-align: center; color: white; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">TEAMRIGHT</div>
+          </div>
+          <div style="width: 153px; height: 49px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #3BB6DD 0%, #206277 100%)"></div>
+          <div id="leftTeamName" style="left: 40px; top: 11px; position: absolute; text-align: center; color: white; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">TEAMLEFT</div>
+        </div>
+        
+        <!-- Left Team Section -->
+        <div id="leftTeamSection" class="animation-layer" style="width: 116px; height: 121px; left: 613px; top: 0px; position: absolute; outline: 1px black solid; outline-offset: -1px">
+          <div style="width: 78px; height: 121px; left: -78px; top: 0px; position: absolute">
+            <div style="width: 78px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #3BB6DD 0%, #206277 100%)"></div>
+            <div id="leftScore" style="left: 0px;top: 10px;position: absolute;text-align: center;color: white;font-size: 84px;font-family: Refrigerator Deluxe;font-weight: 800;word-wrap: break-word;width: 78px">0</div>
+          </div>
+          <div style="width: 116px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%); border: 2px rgba(59, 182, 221, 0.84) solid"></div>
+          <div id="leftLogo" style="width: 92px; height: 92px; left: 12px; top: 15px; position: absolute"></div>
+        </div>
+        
+        <!-- Right Team Section -->
+        <div id="rightTeamSection" class="animation-layer" style="width: 116px; height: 121px; left: 1194px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%)">
+          <div style="width: 78px; height: 121px; left: 116px; top: 0px; position: absolute">
+            <div style="width: 78px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(90deg, #967A21 0%, #F6C939 100%)"></div>
+            <div id="rightScore" style="left: 0px; top: 10px; position: absolute; text-align: center; color: white; font-size: 84px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word; width: 78px">0</div>
+          </div>
+          <div style="width: 116px; height: 121px; left: 0px; top: 0px; position: absolute; background: linear-gradient(180deg, #393939 0%, black 100%); border: 2px rgba(246, 201, 57, 0.84) solid"></div>
+          <div id="rightLogo" style="width: 92px; height: 92px; left: 12px; top: 15px; position: absolute"></div>
+        </div>
+        
+        <!-- Series Info Section -->
+        <div id="seriesSection" class="animation-layer" style="width: 230px; height: 52px; left: 847px; top: 0px; position: absolute">
+          <div style="width: 171px; height: 52px; left: 30px; top: 0px; position: absolute; background: #1E1E1E; box-shadow: 0px 1px 3.200000047683716px rgba(0, 0, 0, 0.46)"></div>
+          <div id="seriesName" style="left: 61px; top: 9px; position: absolute; text-align: center; color: white; font-size: 10px; font-family: Gunar ; font-weight: 400; word-wrap: break-word">GARENA MASTERS IX</div>
+          <div id="seriesNumber" style="left: 78px; top: 20px; position: absolute; text-align: center; color: #F6C939; font-size: 24px; font-family: Refrigerator Deluxe; font-weight: 800; word-wrap: break-word">SERIES 1</div>
+        </div>
+      </div>
+
+    <!-- Complete animation CSS -->
+    <style>
+        /* Animation layers base - START VISIBLE for vMix/OBS */
+        .animation-layer {
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: translate(0, 0);
+        }
+        
+        /* Hidden positions for animations */
+        .animation-layer.hidden {
+            opacity: 0;
+        }
+        
+        /* Initial hidden positions for each layer */
+        .animation-layer.slide-hidden #teamNamesHeader {
+            transform: translateY(-60px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #leftTeamSection {
+            transform: translateX(-120px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #rightTeamSection {
+            transform: translateX(120px);
+            opacity: 0;
+        }
+        
+        .animation-layer.slide-hidden #seriesSection {
+            transform: translateY(-60px);
+            opacity: 0;
+        }
+        
+        /* Show layers when visible */
+        .animation-layer.visible {
+            opacity: 1 !important;
+            transform: translate(0, 0) !important;
+        }
+        
+        /* Layer-specific slide in animations */
+        .layer-slide-in-1 { animation: slideInLayer1 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .layer-slide-in-2 { animation: slideInLayer2 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both; }
+        .layer-slide-in-3 { animation: slideInLayer3 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both; }
+        .layer-slide-in-4 { animation: slideInLayer4 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.45s both; }
+        .layer-slide-in-5 { animation: slideInLayer5 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s both; }
+        
+        /* Layer-specific slide out animations */
+        .layer-slide-out-1 { animation: slideOutLayer1 0.6s cubic-bezier(0.4, 0, 1, 1); }
+        .layer-slide-out-2 { animation: slideOutLayer2 0.6s cubic-bezier(0.4, 0, 1, 1) 0.15s both; }
+        .layer-slide-out-3 { animation: slideOutLayer3 0.6s cubic-bezier(0.4, 0, 1, 1) 0.3s both; }
+        .layer-slide-out-4 { animation: slideOutLayer4 0.6s cubic-bezier(0.4, 0, 1, 1) 0.45s both; }
+        .layer-slide-out-5 { animation: slideOutLayer5 0.6s cubic-bezier(0.4, 0, 1, 1) 0.6s both; }
+        
+        /* Layer-specific fade in animations */
+        .layer-fade-in-1 { animation: fadeInLayer1 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .layer-fade-in-2 { animation: fadeInLayer2 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both; }
+        .layer-fade-in-3 { animation: fadeInLayer3 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both; }
+        .layer-fade-in-4 { animation: fadeInLayer4 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.45s both; }
+        .layer-fade-in-5 { animation: fadeInLayer5 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s both; }
+        
+        /* Layer-specific fade out animations */
+        .layer-fade-out-1 { animation: fadeOutLayer1 0.6s cubic-bezier(0.4, 0, 1, 1); }
+        .layer-fade-out-2 { animation: fadeOutLayer2 0.6s cubic-bezier(0.4, 0, 1, 1) 0.15s both; }
+        .layer-fade-out-3 { animation: fadeOutLayer3 0.6s cubic-bezier(0.4, 0, 1, 1) 0.3s both; }
+        .layer-fade-out-4 { animation: fadeOutLayer4 0.6s cubic-bezier(0.4, 0, 1, 1) 0.45s both; }
+        .layer-fade-out-5 { animation: fadeOutLayer5 0.6s cubic-bezier(0.4, 0, 1, 1) 0.6s both; }
+        
+        /* Esports glow effects */
+        .layer-glow-blue {
+            box-shadow: 0 0 30px rgba(59, 182, 221, 0.8), 0 0 60px rgba(59, 182, 221, 0.4);
+        }
+        .layer-glow-gold {
+            box-shadow: 0 0 30px rgba(246, 201, 57, 0.8), 0 0 60px rgba(246, 201, 57, 0.4);
+        }
+        
+        /* Animation keyframes */
+        @keyframes slideInLayer1 {
+            0% { transform: translateY(-80px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideInLayer2 {
+            0% { transform: translateY(-60px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideInLayer3 {
+            0% { transform: translateX(-120px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInLayer4 {
+            0% { transform: translateX(120px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInLayer5 {
+            0% { transform: translateY(-60px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutLayer1 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-80px); opacity: 0; }
+        }
+        @keyframes slideOutLayer2 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-60px); opacity: 0; }
+        }
+        @keyframes slideOutLayer3 {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(-120px); opacity: 0; }
+        }
+        @keyframes slideOutLayer4 {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120px); opacity: 0; }
+        }
+        @keyframes slideOutLayer5 {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-60px); opacity: 0; }
+        }
+        
+        @keyframes fadeInLayer1 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInLayer2 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeInLayer3 {
+            0% { opacity: 0; transform: scale(0.85) translateX(-20px); }
+            100% { opacity: 1; transform: scale(1) translateX(0); }
+        }
+        @keyframes fadeInLayer4 {
+            0% { opacity: 0; transform: scale(0.85) translateX(20px); }
+            100% { opacity: 1; transform: scale(1) translateX(0); }
+        }
+        @keyframes fadeInLayer5 {
+            0% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        @keyframes fadeOutLayer1 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+        @keyframes fadeOutLayer2 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+        @keyframes fadeOutLayer3 {
+            0% { opacity: 1; transform: scale(1) translateX(0); }
+            100% { opacity: 0; transform: scale(0.85) translateX(-20px); }
+        }
+        @keyframes fadeOutLayer4 {
+            0% { opacity: 1; transform: scale(1) translateX(0); }
+            100% { opacity: 0; transform: scale(0.85) translateX(20px); }
+        }
+        @keyframes fadeOutLayer5 {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-20px); }
+        }
+    </style>
+
+    <script>
+        // 🔥 FIREBASE CONFIGURATION - Updated with your settings
+        const firebaseConfig = {
+             apiKey: "AIzaSyAuP6HK-9EH84UNsu_jxj8WpujQwEEu23k",
+             authDomain: "garenamasters-cf455.firebaseapp.com",
+             databaseURL: "https://garenamasters-cf455-default-rtdb.asia-southeast1.firebasedatabase.app",
+             projectId: "garenamasters-cf455",
+             storageBucket: "garenamasters-cf455.firebasestorage.app",
+             messagingSenderId: "265707118267",
+             appId: "1:265707118267:web:53e3167ff7de51a85ad39e",
+             measurementId: "G-V2J2F1G71W"
+        };
+
+        let database;
+        let isFirebaseReady = false;
+        
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                // Check if config is still default
+                if (firebaseConfig.apiKey === "your-api-key-here") {
+                    console.log("⚠️ Firebase not configured yet");
+                    document.getElementById('firebase-status').className = 'error';
+                    return;
+                }
+                
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                
+                // Test connection
+                database.ref('.info/connected').on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        console.log("🔥 Firebase connected!");
+                        document.getElementById('firebase-status').className = 'connected';
+                        document.getElementById('setup-panel').classList.add('hidden');
+                        isFirebaseReady = true;
+                        startListening();
+                    } else {
+                        console.log("❌ Firebase disconnected");
+                        document.getElementById('firebase-status').className = 'error';
+                    }
+                });
+                
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                document.getElementById('firebase-status').className = 'error';
+            }
+        }
+        
+        // Listen for real-time updates
+        function startListening() {
+            if (!isFirebaseReady) return;
+            
+            // Listen to tournament data changes
+            database.ref('tournament/current').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    console.log("📊 Tournament data updated:", data);
+                    updateDisplay(data);
+                }
+            });
+            
+            // Listen to animation triggers with better vMix compatibility
+            let lastAnimationTimestamp = 0;
+            database.ref('tournament/animation').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.type && data.type !== 'none' && data.timestamp > lastAnimationTimestamp) {
+                    console.log("🎬 Animation triggered:", data.type, "at", data.timestamp);
+                    lastAnimationTimestamp = data.timestamp;
+                    triggerAnimation(data.type);
+                }
+            });
+        }
+        
+        function updateDisplay(matchData) {
+            try {
+                // Update scores
+                document.getElementById('leftScore').textContent = matchData.leftScore || 0;
+                document.getElementById('rightScore').textContent = matchData.rightScore || 0;
+                
+                // Update series info
+                document.getElementById('seriesName').textContent = matchData.seriesName || 'GARENA MASTERS IX';
+                document.getElementById('seriesNumber').textContent = matchData.seriesNumber || 'SERIES 1';
+                
+                // Update team names and logos
+                if (matchData.leftTeam) {
+                    document.getElementById('leftTeamName').textContent = matchData.leftTeam.name;
+                    const leftLogo = document.getElementById('leftLogo');
+                    if (matchData.leftTeam.logo) {
+                        leftLogo.innerHTML = `<img src="${matchData.leftTeam.logo}" alt="${matchData.leftTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        leftLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('leftTeamName').textContent = 'TEAM LEFT';
+                    document.getElementById('leftLogo').innerHTML = '';
+                }
+                
+                if (matchData.rightTeam) {
+                    document.getElementById('rightTeamName').textContent = matchData.rightTeam.name;
+                    const rightLogo = document.getElementById('rightLogo');
+                    if (matchData.rightTeam.logo) {
+                        rightLogo.innerHTML = `<img src="${matchData.rightTeam.logo}" alt="${matchData.rightTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        rightLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('rightTeamName').textContent = 'TEAM RIGHT';
+                    document.getElementById('rightLogo').innerHTML = '';
+                }
+                
+            } catch (error) {
+                console.error('Error updating display:', error);
+            }
+        }
+        
+        let isAnimating = false;
+        
+        function triggerAnimation(animationType) {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            console.log(`🎬 Playing animation: ${animationType}`);
+            
+            const layers = [
+                document.getElementById('teamNamesHeader'),
+                document.getElementById('leftTeamSection'),
+                document.getElementById('rightTeamSection'),
+                document.getElementById('seriesSection')
+            ];
+            
+            // Clear existing animation classes
+            layers.forEach(layer => {
+                if (layer) {
+                    layer.className = layer.className.replace(/layer-(slide|fade)-(in|out)-\d+/g, '').replace(/layer-glow-(blue|gold)/g, '').replace(/visible/g, '').trim();
+                    layer.classList.add('animation-layer');
+                    
+                    if (animationType.includes('In')) {
+                        layer.classList.remove('visible');
+                    } else {
+                        layer.classList.add('visible');
+                        layer.offsetHeight; // Force reflow
+                    }
+                }
+            });
+            
+            // Apply animations
+            switch(animationType) {
+                case 'slideIn':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-slide-in-${index + 1}`);
+                                if (index === 1) layer.classList.add('layer-glow-blue');
+                                if (index === 2) layer.classList.add('layer-glow-gold');
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) {
+                                layer.classList.remove('layer-glow-blue', 'layer-glow-gold');
+                                layer.classList.add('visible');
+                            }
+                        });
+                        isAnimating = false;
+                    }, 1500);
+                    break;
+                    
+                case 'slideOut':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-slide-out-${index + 1}`);
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) layer.classList.remove('visible');
+                        });
+                        isAnimating = false;
+                    }, 1500);
+                    break;
+                    
+                case 'fadeIn':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-fade-in-${index + 1}`);
+                                if (index === 1) layer.classList.add('layer-glow-blue');
+                                if (index === 2) layer.classList.add('layer-glow-gold');
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) {
+                                layer.classList.remove('layer-glow-blue', 'layer-glow-gold');
+                                layer.classList.add('visible');
+                            }
+                        });
+                        isAnimating = false;
+                    }, 1500);
+                    break;
+                    
+                case 'fadeOut':
+                    layers.forEach((layer, index) => {
+                        if (layer) {
+                            setTimeout(() => {
+                                layer.classList.add(`layer-fade-out-${index + 1}`);
+                            }, index * 150);
+                        }
+                    });
+                    setTimeout(() => {
+                        layers.forEach(layer => {
+                            if (layer) layer.classList.remove('visible');
+                        });
+                        isAnimating = false;
+                    }, 1500);
+                    break;
+            }
+        }
+        
+        // Backup polling for vMix compatibility (in case real-time doesn't work)
+        let pollingInterval;
+        function startBackupPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(() => {
+                if (isFirebaseReady) {
+                    // Check for animation triggers via polling
+                    database.ref('tournament/animation').once('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data && data.type && data.type !== 'none' && data.timestamp > lastAnimationTimestamp) {
+                            console.log("🎬 Animation detected via polling:", data.type);
+                            lastAnimationTimestamp = data.timestamp;
+                            triggerAnimation(data.type);
+                        }
+                    });
+                }
+            }, 500); // Check every 500ms
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎮 Tournament Overlay (Firebase) loading...');
+            initFirebase();
+            
+            // Start backup polling after a delay
+            setTimeout(() => {
+                startBackupPolling();
+                console.log('📡 Backup polling started for vMix compatibility');
+            }, 3000);
+        });
+        
+        // Also initialize immediately
+        initFirebase();
+        
+        // Start backup polling after initialization
+        setTimeout(() => {
+            startBackupPolling();
+        }, 5000);
+    </script>
+</body>
+</html> 

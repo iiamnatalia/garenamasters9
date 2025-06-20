@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Controller - Firebase</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3BB6DD',
+                        secondary: '#F6C939',
+                        accent: '#206277',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-5">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                🔥 Firebase Tournament Controller
+            </h1>
+            <div id="firebase-status" class="mt-4 text-lg"></div>
+        </div>
+
+        <!-- Firebase Setup Panel -->
+        <div id="setup-panel" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <h3 class="font-bold text-lg mb-2">🔥 Firebase Setup Required</h3>
+            <p class="mb-4">To use this controller, you need to configure Firebase:</p>
+            <ol class="list-decimal list-inside space-y-2 mb-4">
+                <li>Go to <a href="https://firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Console</a></li>
+                <li>Create a new project (or use existing)</li>
+                <li>Enable "Realtime Database" with these rules:</li>
+            </ol>
+            <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm mb-4">{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}</pre>
+            <p>4. Get your config from Project Settings → Web App</p>
+            <p>5. Replace the config in BOTH this file and the overlay file</p>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">🔗 Connection Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center space-x-3">
+                    <div id="status-indicator" class="w-4 h-4 rounded-full bg-orange-500"></div>
+                    <span id="status-text">Connecting to Firebase...</span>
+                </div>
+                <div class="text-right">
+                    <button onclick="testConnection()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
+                        Test Connection
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Animation Controls -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">🎬 Animation Controls</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="triggerAnimation('slideIn')"
+                        class="px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    📥 Slide In
+                </button>
+                <button onclick="triggerAnimation('slideOut')"
+                        class="px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    📤 Slide Out
+                </button>
+                <button onclick="triggerAnimation('fadeIn')"
+                        class="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    ✨ Fade In
+                </button>
+                <button onclick="triggerAnimation('fadeOut')"
+                        class="px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    💨 Fade Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Team Management -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Team Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="flex flex-col space-y-2">
+                    <label for="teamName" class="text-sm font-medium text-gray-300">Team Name</label>
+                    <input type="text" id="teamName" placeholder="Enter team name"
+                           class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Team Logo</label>
+                    <div class="relative">
+                        <input type="file" id="teamLogo" accept="image/*" class="absolute -left-[9999px]">
+                        <label for="teamLogo" 
+                               class="block w-full px-4 py-3 border-2 border-dashed border-white/30 rounded-lg text-center cursor-pointer transition-all duration-200 hover:border-primary">
+                            Choose Logo
+                        </label>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="addTeam()"
+                            class="px-6 py-3 bg-gradient-to-r from-yellow-600 to-secondary text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                        Add Team
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="teamList">
+                <!-- Teams will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Battle Setup -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Battle Setup</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center mb-4">
+                <div class="flex flex-col space-y-2">
+                    <label for="leftTeam" class="text-sm font-medium text-gray-300">Left Team</label>
+                    <select id="leftTeam" class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white">
+                        <option value="">Select Team</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-secondary">VS</div>
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <label for="rightTeam" class="text-sm font-medium text-gray-300">Right Team</label>
+                    <select id="rightTeam" class="px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white">
+                        <option value="">Select Team</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-center space-x-3">
+                <button onclick="setupBattle()"
+                        class="px-8 py-3 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    Setup Battle
+                </button>
+                <button onclick="resetBattle()"
+                        class="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                    🗑️ Reset Battle
+                </button>
+            </div>
+        </div>
+
+        <!-- Score Control -->
+        <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-6 shadow-lg">
+            <h2 class="text-xl font-semibold text-secondary mb-4">Score Control</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <!-- Left Team Score -->
+                <div class="text-center">
+                    <h3 id="leftTeamName" class="text-lg font-semibold mb-3">TEAM LEFT</h3>
+                    <div id="leftScore" class="text-6xl font-bold text-primary mb-4">0</div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="changeScore('left', -1)"
+                                class="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            −
+                        </button>
+                        <button onclick="changeScore('left', 1)"
+                                class="w-12 h-12 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="text-center space-y-3">
+                    <button onclick="switchTeams()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                        🔄 Switch Teams
+                    </button>
+                    <button onclick="resetScores()"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all duration-200">
+                        Reset Scores
+                    </button>
+                </div>
+
+                <!-- Right Team Score -->
+                <div class="text-center">
+                    <h3 id="rightTeamName" class="text-lg font-semibold mb-3">TEAM RIGHT</h3>
+                    <div id="rightScore" class="text-6xl font-bold text-primary mb-4">0</div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="changeScore('right', -1)"
+                                class="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            −
+                        </button>
+                        <button onclick="changeScore('right', 1)"
+                                class="w-12 h-12 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-full hover:scale-110 transition-transform duration-200 text-xl">
+                            +
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔥 FIREBASE CONFIGURATION - Updated with your settings
+        const firebaseConfig = {
+        apiKey: "AIzaSyAuP6HK-9EH84UNsu_jxj8WpujQwEEu23k",
+        authDomain: "garenamasters-cf455.firebaseapp.com",
+        databaseURL: "https://garenamasters-cf455-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "garenamasters-cf455",
+        storageBucket: "garenamasters-cf455.firebasestorage.app",
+        messagingSenderId: "265707118267",
+        appId: "1:265707118267:web:53e3167ff7de51a85ad39e",
+        measurementId: "G-V2J2F1G71W"
+        };
+
+
+        let database;
+        let isFirebaseReady = false;
+        let teams = [];
+        let currentMatch = {
+            leftTeam: null,
+            rightTeam: null,
+            leftScore: 0,
+            rightScore: 0,
+            seriesName: 'GARENA MASTERS IX',
+            seriesNumber: 'SERIES 1'
+        };
+
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                // Check if config is still default
+                if (firebaseConfig.apiKey === "your-api-key-here") {
+                    updateStatus("❌ Firebase not configured", "error");
+                    return;
+                }
+                
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                
+                database.ref('.info/connected').on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        updateStatus("🔥 Firebase connected!", "success");
+                        document.getElementById('setup-panel').style.display = 'none';
+                        isFirebaseReady = true;
+                        loadTeams();
+                    } else {
+                        updateStatus("❌ Firebase disconnected", "error");
+                    }
+                });
+                
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                updateStatus("❌ Firebase error: " + error.message, "error");
+            }
+        }
+
+        function updateStatus(message, type) {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            text.textContent = message;
+            
+            if (type === 'success') {
+                indicator.className = 'w-4 h-4 rounded-full bg-green-500';
+            } else if (type === 'error') {
+                indicator.className = 'w-4 h-4 rounded-full bg-red-500';
+            } else {
+                indicator.className = 'w-4 h-4 rounded-full bg-orange-500';
+            }
+        }
+
+        function testConnection() {
+            if (!isFirebaseReady) {
+                alert('Firebase not connected!');
+                return;
+            }
+            
+            database.ref('tournament/test').set({
+                message: 'Test from controller',
+                timestamp: Date.now()
+            }).then(() => {
+                alert('✅ Firebase connection test successful!');
+            }).catch(error => {
+                alert('❌ Firebase test failed: ' + error.message);
+            });
+        }
+
+        function updateTournamentData() {
+            if (!isFirebaseReady) return;
+            
+            database.ref('tournament/current').set({
+                ...currentMatch,
+                timestamp: Date.now()
+            }).then(() => {
+                console.log('📊 Tournament data updated in Firebase');
+            }).catch(error => {
+                console.error('Error updating Firebase:', error);
+            });
+        }
+
+        function triggerAnimation(animationType) {
+            if (!isFirebaseReady) {
+                alert('Firebase not connected!');
+                return;
+            }
+            
+            const animationData = {
+                type: animationType,
+                timestamp: Date.now(),
+                id: Math.random().toString(36).substr(2, 9) // Unique ID for each animation
+            };
+            
+            database.ref('tournament/animation').set(animationData).then(() => {
+                showStatus(`${animationType} animation triggered!`);
+                console.log('🎬 Animation sent to Firebase:', animationData);
+            }).catch(error => {
+                console.error('Animation trigger failed:', error);
+            });
+        }
+
+        function addTeam() {
+            const name = document.getElementById('teamName').value.trim();
+            const logoFile = document.getElementById('teamLogo').files[0];
+            
+            if (!name) {
+                alert('Please enter a team name');
+                return;
+            }
+
+            const team = {
+                id: Date.now(),
+                name: name,
+                logo: null
+            };
+
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    team.logo = e.target.result;
+                    teams.push(team);
+                    saveTeams();
+                    updateTeamsList();
+                    updateTeamSelectors();
+                    document.getElementById('teamName').value = '';
+                    document.getElementById('teamLogo').value = '';
+                    showStatus(`Team "${name}" added!`);
+                };
+                reader.readAsDataURL(logoFile);
+            } else {
+                teams.push(team);
+                saveTeams();
+                updateTeamsList();
+                updateTeamSelectors();
+                document.getElementById('teamName').value = '';
+                showStatus(`Team "${name}" added!`);
+            }
+        }
+
+        function saveTeams() {
+            if (isFirebaseReady) {
+                database.ref('tournament/teams').set(teams);
+            }
+        }
+
+        function loadTeams() {
+            if (isFirebaseReady) {
+                database.ref('tournament/teams').once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        teams = data;
+                        updateTeamsList();
+                        updateTeamSelectors();
+                    }
+                });
+            }
+        }
+
+        function setupBattle() {
+            const leftTeamId = document.getElementById('leftTeam').value;
+            const rightTeamId = document.getElementById('rightTeam').value;
+            
+            if (!leftTeamId || !rightTeamId) {
+                alert('Please select both teams');
+                return;
+            }
+            
+            if (leftTeamId === rightTeamId) {
+                alert('Please select different teams');
+                return;
+            }
+            
+            currentMatch.leftTeam = teams.find(team => team.id == leftTeamId);
+            currentMatch.rightTeam = teams.find(team => team.id == rightTeamId);
+            currentMatch.leftScore = 0;
+            currentMatch.rightScore = 0;
+            
+            updateDisplay();
+            updateTournamentData();
+            showStatus('Battle setup completed!');
+        }
+
+        function changeScore(side, delta) {
+            if (side === 'left') {
+                currentMatch.leftScore = Math.max(0, currentMatch.leftScore + delta);
+            } else {
+                currentMatch.rightScore = Math.max(0, currentMatch.rightScore + delta);
+            }
+            updateDisplay();
+            updateTournamentData();
+        }
+
+        function resetScores() {
+            currentMatch.leftScore = 0;
+            currentMatch.rightScore = 0;
+            updateDisplay();
+            updateTournamentData();
+            showStatus('Scores reset!');
+        }
+
+        function resetBattle() {
+            if (confirm('Reset the entire battle?')) {
+                currentMatch.leftTeam = null;
+                currentMatch.rightTeam = null;
+                currentMatch.leftScore = 0;
+                currentMatch.rightScore = 0;
+                
+                document.getElementById('leftTeam').value = '';
+                document.getElementById('rightTeam').value = '';
+                
+                updateDisplay();
+                updateTournamentData();
+                showStatus('Battle reset!');
+            }
+        }
+
+        function switchTeams() {
+            if (!currentMatch.leftTeam || !currentMatch.rightTeam) {
+                alert('Please setup a battle first!');
+                return;
+            }
+
+            const tempTeam = currentMatch.leftTeam;
+            currentMatch.leftTeam = currentMatch.rightTeam;
+            currentMatch.rightTeam = tempTeam;
+
+            const tempScore = currentMatch.leftScore;
+            currentMatch.leftScore = currentMatch.rightScore;
+            currentMatch.rightScore = tempScore;
+
+            document.getElementById('leftTeam').value = currentMatch.leftTeam.id;
+            document.getElementById('rightTeam').value = currentMatch.rightTeam.id;
+
+            updateDisplay();
+            updateTournamentData();
+            showStatus('Teams switched!');
+        }
+
+        function updateDisplay() {
+            document.getElementById('leftScore').textContent = currentMatch.leftScore;
+            document.getElementById('rightScore').textContent = currentMatch.rightScore;
+            document.getElementById('leftTeamName').textContent = currentMatch.leftTeam ? currentMatch.leftTeam.name : 'TEAM LEFT';
+            document.getElementById('rightTeamName').textContent = currentMatch.rightTeam ? currentMatch.rightTeam.name : 'TEAM RIGHT';
+        }
+
+        function updateTeamsList() {
+            const teamList = document.getElementById('teamList');
+            teamList.innerHTML = '';
+            
+            teams.forEach(team => {
+                const teamCard = document.createElement('div');
+                teamCard.className = 'bg-white/10 border border-white/10 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-200';
+                teamCard.innerHTML = `
+                    <div class="w-16 h-16 rounded-full mx-auto mb-3 bg-white/10 flex items-center justify-center overflow-hidden border-2 border-white/20">
+                        ${team.logo ? `<img src="${team.logo}" alt="${team.name}" class="w-full h-full object-cover">` : `<span class="text-xl font-bold text-primary">${team.name.charAt(0)}</span>`}
+                    </div>
+                    <div class="font-medium text-white mb-3 truncate">${team.name}</div>
+                    <button onclick="removeTeam(${team.id})" 
+                            class="px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium rounded-lg hover:scale-105 transition-transform duration-200">
+                        Remove
+                    </button>
+                `;
+                teamList.appendChild(teamCard);
+            });
+        }
+
+        function updateTeamSelectors() {
+            const leftSelect = document.getElementById('leftTeam');
+            const rightSelect = document.getElementById('rightTeam');
+            
+            leftSelect.innerHTML = '<option value="">Select Team</option>';
+            rightSelect.innerHTML = '<option value="">Select Team</option>';
+            
+            teams.forEach(team => {
+                const option1 = document.createElement('option');
+                option1.value = team.id;
+                option1.textContent = team.name;
+                leftSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = team.id;
+                option2.textContent = team.name;
+                rightSelect.appendChild(option2);
+            });
+        }
+
+        function removeTeam(teamId) {
+            teams = teams.filter(team => team.id !== teamId);
+            saveTeams();
+            updateTeamsList();
+            updateTeamSelectors();
+            showStatus('Team removed!');
+        }
+
+        function showStatus(message) {
+            const status = document.createElement('div');
+            status.className = 'fixed top-5 right-5 px-6 py-3 bg-green-600 text-white rounded-lg font-medium z-50 transform transition-all duration-300';
+            status.textContent = message;
+            document.body.appendChild(status);
+            
+            setTimeout(() => {
+                status.remove();
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initFirebase();
+        });
+
+        // Also initialize immediately
+        initFirebase();
+    </script>
+</body>
+</html> 
