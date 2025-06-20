@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tournament Overlay - Firebase</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
+    <title>Tournament Overlay</title>
     <!-- Custom Fonts -->
     <style>
         @font-face {
@@ -67,83 +63,67 @@
             overflow: hidden;
         }
         
-        /* Firebase status indicator */
-        #firebase-status {
+        /* Status indicator for debugging */
+        #status-indicator {
             position: fixed;
             top: 10px;
             right: 10px;
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #ffa500;
+            background: #00ff00;
             z-index: 9999;
+            opacity: 0.9;
             border: 2px solid white;
         }
         
-        #firebase-status.connected {
-            background: #00ff00;
-        }
-        
-        #firebase-status.error {
+        #status-indicator.error {
             background: #ff0000;
         }
         
-        /* Setup instructions panel */
-        #setup-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 30px;
-            border-radius: 10px;
-            text-align: center;
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            z-index: 10000;
+        #status-indicator.updating {
+            background: #ffff00;
+            animation: pulse 0.5s infinite;
         }
         
-        #setup-panel.hidden {
+        #status-indicator.file-mode {
+            background: #ff8800;
+        }
+        
+        /* Debug info panel */
+        #debug-info {
+            position: fixed;
+            top: 40px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9998;
+            max-width: 300px;
             display: none;
         }
         
-        .setup-step {
-            margin: 15px 0;
-            padding: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
+        #debug-info.show {
+            display: block;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <!-- Firebase status indicator -->
-    <div id="firebase-status"></div>
-    
-    <!-- Setup instructions panel -->
-    <div id="setup-panel">
-        <h2>🔥 Firebase Setup Required</h2>
-        <p>To use this overlay, you need to set up Firebase:</p>
-        
-        <div class="setup-step">
-            <strong>1.</strong> Go to <a href="https://firebase.google.com" target="_blank" style="color: #4fc3f7;">Firebase Console</a>
-        </div>
-        <div class="setup-step">
-            <strong>2.</strong> Create a new project (or use existing)
-        </div>
-        <div class="setup-step">
-            <strong>3.</strong> Enable "Realtime Database"
-        </div>
-        <div class="setup-step">
-            <strong>4.</strong> Get your config from Project Settings → Web App
-        </div>
-        <div class="setup-step">
-            <strong>5.</strong> Replace the config in the JavaScript below
-        </div>
-        
-        <p style="margin-top: 20px; color: #ffeb3b;">
-            Once configured, this overlay will work perfectly in OBS/vMix!
-        </p>
+    <!-- Status indicator for debugging -->
+    <div id="status-indicator"></div>
+    <div id="debug-info">
+        <div>Mode: <span id="debug-mode">Starting...</span></div>
+        <div>Updates: <span id="debug-updates">0</span></div>
+        <div>Last: <span id="debug-last">Never</span></div>
+        <div>Error: <span id="debug-error">None</span></div>
     </div>
     
     <div style="width: 1920px; height: 1080px; position: relative">
@@ -185,7 +165,6 @@
         </div>
       </div>
 
-    <!-- Complete animation CSS -->
     <style>
         /* Animation layers base - START VISIBLE for vMix/OBS */
         .animation-layer {
@@ -349,128 +328,74 @@
     </style>
 
     <script>
-        // 🔥 FIREBASE CONFIGURATION - Updated with your settings
-        const firebaseConfig = {
-             apiKey: "AIzaSyAuP6HK-9EH84UNsu_jxj8WpujQwEEu23k",
-             authDomain: "garenamasters-cf455.firebaseapp.com",
-             databaseURL: "https://garenamasters-cf455-default-rtdb.asia-southeast1.firebasedatabase.app",
-             projectId: "garenamasters-cf455",
-             storageBucket: "garenamasters-cf455.firebasestorage.app",
-             messagingSenderId: "265707118267",
-             appId: "1:265707118267:web:53e3167ff7de51a85ad39e",
-             measurementId: "G-V2J2F1G71W"
-        };
-
-        let database;
-        let isFirebaseReady = false;
-        
-        // Initialize Firebase
-        function initFirebase() {
-            try {
-                // Check if config is still default
-                if (firebaseConfig.apiKey === "your-api-key-here") {
-                    console.log("⚠️ Firebase not configured yet");
-                    document.getElementById('firebase-status').className = 'error';
-                    return;
-                }
-                
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                
-                // Test connection
-                database.ref('.info/connected').on('value', (snapshot) => {
-                    if (snapshot.val() === true) {
-                        console.log("🔥 Firebase connected!");
-                        document.getElementById('firebase-status').className = 'connected';
-                        document.getElementById('setup-panel').classList.add('hidden');
-                        isFirebaseReady = true;
-                        startListening();
-                    } else {
-                        console.log("❌ Firebase disconnected");
-                        document.getElementById('firebase-status').className = 'error';
-                    }
-                });
-                
-            } catch (error) {
-                console.error("Firebase initialization error:", error);
-                document.getElementById('firebase-status').className = 'error';
-            }
-        }
-        
-        // Listen for real-time updates
-        function startListening() {
-            if (!isFirebaseReady) return;
-            
-            // Listen to tournament data changes
-            database.ref('tournament/current').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    console.log("📊 Tournament data updated:", data);
-                    updateDisplay(data);
-                }
-            });
-            
-            // Listen to animation triggers with better vMix compatibility
-            let lastAnimationTimestamp = 0;
-            database.ref('tournament/animation').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.type && data.type !== 'none' && data.timestamp > lastAnimationTimestamp) {
-                    console.log("🎬 Animation triggered:", data.type, "at", data.timestamp);
-                    lastAnimationTimestamp = data.timestamp;
-                    triggerAnimation(data.type);
-                }
-            });
-        }
-        
-        function updateDisplay(matchData) {
-            try {
-                // Update scores
-                document.getElementById('leftScore').textContent = matchData.leftScore || 0;
-                document.getElementById('rightScore').textContent = matchData.rightScore || 0;
-                
-                // Update series info
-                document.getElementById('seriesName').textContent = matchData.seriesName || 'GARENA MASTERS IX';
-                document.getElementById('seriesNumber').textContent = matchData.seriesNumber || 'SERIES 1';
-                
-                // Update team names and logos
-                if (matchData.leftTeam) {
-                    document.getElementById('leftTeamName').textContent = matchData.leftTeam.name;
-                    const leftLogo = document.getElementById('leftLogo');
-                    if (matchData.leftTeam.logo) {
-                        leftLogo.innerHTML = `<img src="${matchData.leftTeam.logo}" alt="${matchData.leftTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
-                    } else {
-                        leftLogo.innerHTML = '';
-                    }
-                } else {
-                    document.getElementById('leftTeamName').textContent = 'TEAM LEFT';
-                    document.getElementById('leftLogo').innerHTML = '';
-                }
-                
-                if (matchData.rightTeam) {
-                    document.getElementById('rightTeamName').textContent = matchData.rightTeam.name;
-                    const rightLogo = document.getElementById('rightLogo');
-                    if (matchData.rightTeam.logo) {
-                        rightLogo.innerHTML = `<img src="${matchData.rightTeam.logo}" alt="${matchData.rightTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
-                    } else {
-                        rightLogo.innerHTML = '';
-                    }
-                } else {
-                    document.getElementById('rightTeamName').textContent = 'TEAM RIGHT';
-                    document.getElementById('rightLogo').innerHTML = '';
-                }
-                
-            } catch (error) {
-                console.error('Error updating display:', error);
-            }
-        }
-        
+        // Enhanced overlay script for vMix/OBS compatibility
         let isAnimating = false;
+        let lastDataTimestamp = 0;
+        let lastAnimTimestamp = 0;
+        let lastUpdateId = '';
+        let lastAnimId = '';
+        let statusIndicator = null;
+        let debugInfo = null;
+        let updateCount = 0;
+        let currentMode = 'server';
+        
+        function updateStatus(status) {
+            if (!statusIndicator) {
+                statusIndicator = document.getElementById('status-indicator');
+                debugInfo = document.getElementById('debug-info');
+            }
+            
+            statusIndicator.className = status || '';
+            
+            // Show debug info in OBS for troubleshooting
+            if (debugInfo) {
+                debugInfo.classList.add('show');
+                document.getElementById('debug-mode').textContent = currentMode;
+                document.getElementById('debug-updates').textContent = updateCount;
+                document.getElementById('debug-last').textContent = new Date().toLocaleTimeString();
+                
+                if (status === 'error') {
+                    document.getElementById('debug-error').textContent = 'Connection failed';
+                } else {
+                    document.getElementById('debug-error').textContent = 'None';
+                }
+            }
+        }
+        
+        function loadMatchData() {
+            try {
+                // Load from server first (for OBS/vMix compatibility)
+                fetch('/api/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateDisplay(data);
+                        updateStatus(''); // Green - normal
+                    })
+                    .catch(error => {
+                        console.error('Error loading from server:', error);
+                        // Fallback to localStorage
+                        const currentMatch = JSON.parse(localStorage.getItem('current_match')) || {
+                            leftTeam: null,
+                            rightTeam: null,
+                            leftScore: 0,
+                            rightScore: 0,
+                            seriesName: 'GARENA MASTERS IX',
+                            seriesNumber: 'SERIES 1'
+                        };
+                        updateDisplay(currentMatch);
+                        updateStatus('error'); // Yellow - using fallback
+                    });
+            } catch (error) {
+                console.error('Error loading match data:', error);
+                updateStatus('error'); // Red - error
+            }
+        }
         
         function triggerAnimation(animationType) {
             if (isAnimating) return;
             
             isAnimating = true;
-            console.log(`🎬 Playing animation: ${animationType}`);
+            updateStatus('updating'); // Yellow - animating
             
             const layers = [
                 document.getElementById('teamNamesHeader'),
@@ -514,6 +439,7 @@
                             }
                         });
                         isAnimating = false;
+                        updateStatus(''); // Back to green
                     }, 1500);
                     break;
                     
@@ -530,6 +456,7 @@
                             if (layer) layer.classList.remove('visible');
                         });
                         isAnimating = false;
+                        updateStatus('');
                     }, 1500);
                     break;
                     
@@ -551,6 +478,7 @@
                             }
                         });
                         isAnimating = false;
+                        updateStatus('');
                     }, 1500);
                     break;
                     
@@ -567,50 +495,153 @@
                             if (layer) layer.classList.remove('visible');
                         });
                         isAnimating = false;
+                        updateStatus('');
                     }, 1500);
                     break;
             }
         }
-        
-        // Backup polling for vMix compatibility (in case real-time doesn't work)
-        let pollingInterval;
-        function startBackupPolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-            
-            pollingInterval = setInterval(() => {
-                if (isFirebaseReady) {
-                    // Check for animation triggers via polling
-                    database.ref('tournament/animation').once('value', (snapshot) => {
-                        const data = snapshot.val();
-                        if (data && data.type && data.type !== 'none' && data.timestamp > lastAnimationTimestamp) {
-                            console.log("🎬 Animation detected via polling:", data.type);
-                            lastAnimationTimestamp = data.timestamp;
-                            triggerAnimation(data.type);
-                        }
-                    });
+
+        function updateDisplay(matchData) {
+            try {
+                updateStatus('updating');
+                
+                // Update scores
+                document.getElementById('leftScore').textContent = matchData.leftScore || 0;
+                document.getElementById('rightScore').textContent = matchData.rightScore || 0;
+                
+                // Update series info
+                document.getElementById('seriesName').textContent = matchData.seriesName || 'GARENA MASTERS IX';
+                document.getElementById('seriesNumber').textContent = matchData.seriesNumber || 'SERIES 1';
+                
+                // Update team names
+                if (matchData.leftTeam) {
+                    document.getElementById('leftTeamName').textContent = matchData.leftTeam.name;
+                    
+                    const leftLogo = document.getElementById('leftLogo');
+                    if (matchData.leftTeam.logo) {
+                        leftLogo.innerHTML = `<img src="${matchData.leftTeam.logo}" alt="${matchData.leftTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        leftLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('leftTeamName').textContent = 'TEAM LEFT';
+                    document.getElementById('leftLogo').innerHTML = '';
                 }
-            }, 500); // Check every 500ms
+                
+                if (matchData.rightTeam) {
+                    document.getElementById('rightTeamName').textContent = matchData.rightTeam.name;
+                    
+                    const rightLogo = document.getElementById('rightLogo');
+                    if (matchData.rightTeam.logo) {
+                        rightLogo.innerHTML = `<img src="${matchData.rightTeam.logo}" alt="${matchData.rightTeam.name}" style="width: 100%; height: 100%; object-fit: contain;">`;
+                    } else {
+                        rightLogo.innerHTML = '';
+                    }
+                } else {
+                    document.getElementById('rightTeamName').textContent = 'TEAM RIGHT';
+                    document.getElementById('rightLogo').innerHTML = '';
+                }
+                
+                setTimeout(() => updateStatus(''), 100); // Brief update indicator
+            } catch (error) {
+                console.error('Error updating display:', error);
+                updateStatus('error');
+            }
         }
 
-        // Initialize when page loads
+        // Enhanced polling for vMix/OBS compatibility - using file-based approach
+        function checkForUpdates() {
+            try {
+                // Try server API first, fallback to file-based approach
+                fetch('/api/data')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Server API not available');
+                        }
+                        return response.json();
+                    })
+                                         .then(data => {
+                         if (data.server_time && data.server_time > lastDataTimestamp) {
+                             lastDataTimestamp = data.server_time;
+                             updateDisplay(data);
+                             updateStatus(''); // Green - server working
+                             updateCount++;
+                             currentMode = 'server-api';
+                         }
+                     })
+                    .catch(error => {
+                        console.log('Server API failed, trying file approach:', error);
+                        currentMode = 'file';
+                        // Fallback: Try to load JSON file directly
+                        fetch('/tournament_data.json?t=' + Date.now())
+                            .then(response => response.json())
+                            .then(data => {
+                                updateDisplay(data);
+                                updateStatus('file-mode'); // Orange - using file fallback
+                                updateCount++;
+                            })
+                            .catch(fileError => {
+                                console.error('Both server and file approaches failed:', fileError);
+                                currentMode = 'failed';
+                                updateStatus('error');
+                            });
+                    });
+                
+                // Check animation triggers
+                fetch('/api/animation')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.server_time && data.server_time > lastAnimTimestamp && data.type !== 'none') {
+                            lastAnimTimestamp = data.server_time;
+                            triggerAnimation(data.type);
+                        }
+                    })
+                    .catch(error => {
+                        // Fallback: Try to load animation JSON file directly
+                        fetch('/animation_data.json?t=' + Date.now())
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.server_time && data.server_time > lastAnimTimestamp && data.type !== 'none') {
+                                    lastAnimTimestamp = data.server_time;
+                                    triggerAnimation(data.type);
+                                }
+                            })
+                            .catch(animError => {
+                                console.error('Animation fetch failed:', animError);
+                            });
+                    });
+                
+            } catch (error) {
+                console.error('Update check failed:', error);
+                updateStatus('error');
+            }
+        }
+        
+        // Very fast polling for responsive overlay updates
+        setInterval(checkForUpdates, 100);
+        
+        // Fallback slower polling in case fast polling fails
+        setInterval(loadMatchData, 5000);
+
+        // Initialize overlay
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎮 Tournament Overlay (Firebase) loading...');
-            initFirebase();
+            console.log('Tournament Overlay loaded');
+            loadMatchData();
             
-            // Start backup polling after a delay
-            setTimeout(() => {
-                startBackupPolling();
-                console.log('📡 Backup polling started for vMix compatibility');
-            }, 3000);
+            // Make all layers visible by default for vMix/OBS
+            const layers = document.querySelectorAll('.animation-layer');
+            layers.forEach(layer => {
+                layer.classList.add('visible');
+            });
         });
         
         // Also initialize immediately
-        initFirebase();
+        loadMatchData();
         
-        // Start backup polling after initialization
-        setTimeout(() => {
-            startBackupPolling();
-        }, 5000);
+        // Debug: Log when localStorage changes (for testing)
+        window.addEventListener('storage', function(e) {
+            console.log('LocalStorage changed:', e.key, e.newValue);
+        });
     </script>
 </body>
-</html> 
+</html>
